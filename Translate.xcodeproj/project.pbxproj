@@ -15,7 +15,7 @@
 		D1B0E8822F6B9519006C7BB2 /* SentencepieceTokenizer in Frameworks */ = {isa = PBXBuildFile; productRef = D1B0E8812F6B9519006C7BB2 /* SentencepieceTokenizer */; };
 		E1A1000C2F80000100C0D001 /* CTranslate2Bridge.mm in Sources */ = {isa = PBXBuildFile; fileRef = E1A100102F80000100C0D001 /* CTranslate2Bridge.mm */; };
 		E1A1000E2F80000100C0D001 /* opus-mt-tiny-zh-en-ct2-int8 in Resources */ = {isa = PBXBuildFile; fileRef = E1A100132F80000100C0D001 /* opus-mt-tiny-zh-en-ct2-int8 */; };
-		E1A100142F80000100C0D001 /* opus-mt-en-zh-ct2-int8 in Resources */ = {isa = PBXBuildFile; fileRef = E1A100152F80000100C0D001 /* opus-mt-en-zh-ct2-int8 */; };
+		E1A100142F80000100C0D001 /* opus-mt-small512d-opus100-ft-mix-coffee-ct2-int8 in Resources */ = {isa = PBXBuildFile; fileRef = E1A100152F80000100C0D001 /* opus-mt-small512d-opus100-ft-mix-coffee-ct2-int8 */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -29,7 +29,7 @@
 		E1A100102F80000100C0D001 /* CTranslate2Bridge.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = CTranslate2Bridge.mm; sourceTree = "<group>"; };
 		E1A100112F80000100C0D001 /* Translate-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Translate-Bridging-Header.h"; sourceTree = "<group>"; };
 		E1A100132F80000100C0D001 /* opus-mt-tiny-zh-en-ct2-int8 */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "opus-mt-tiny-zh-en-ct2-int8"; sourceTree = "<group>"; };
-		E1A100152F80000100C0D001 /* opus-mt-en-zh-ct2-int8 */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "opus-mt-en-zh-ct2-int8"; sourceTree = "<group>"; };
+		E1A100152F80000100C0D001 /* opus-mt-small512d-opus100-ft-mix-coffee-ct2-int8 */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "opus-mt-small512d-opus100-ft-mix-coffee-ct2-int8"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -49,7 +49,7 @@
 			children = (
 				D1B0E85A2F6AD94E006C7BB2 /* Translate */,
 				E1A100132F80000100C0D001 /* opus-mt-tiny-zh-en-ct2-int8 */,
-				E1A100152F80000100C0D001 /* opus-mt-en-zh-ct2-int8 */,
+				E1A100152F80000100C0D001 /* opus-mt-small512d-opus100-ft-mix-coffee-ct2-int8 */,
 				D1B0E8592F6AD94E006C7BB2 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -152,7 +152,7 @@
 				D1B0E8632F6AD950006C7BB2 /* Preview Assets.xcassets in Resources */,
 				D1B0E8602F6AD950006C7BB2 /* Assets.xcassets in Resources */,
 				E1A1000E2F80000100C0D001 /* opus-mt-tiny-zh-en-ct2-int8 in Resources */,
-				E1A100142F80000100C0D001 /* opus-mt-en-zh-ct2-int8 in Resources */,
+				E1A100142F80000100C0D001 /* opus-mt-small512d-opus100-ft-mix-coffee-ct2-int8 in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
