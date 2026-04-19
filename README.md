@@ -1,6 +1,11 @@
 # Translate
 
-一个本地离线的 iOS 双向翻译应用，当前使用 `OPUS-MT (Marian)` + `CTranslate2 int8` 做中英互译，并集成了系统语音输入与语音播报。
+一个本地离线的 iOS 双向翻译应用，使用 `OPUS-MT` 做中英互译，并集成了系统语音输入与语音播报。
+
+- `en -> zh`：标准 `OPUS-MT` 模型（52M 参数）
+- `zh -> en`：`OPUS-MT Tiny` 模型（25.4M 参数）
+
+两套模型均使用 `CTranslate2 int8` 量化，运行时本地 CPU 推理。
 
 ## 这个项目现在是什么
 
@@ -9,11 +14,9 @@
 - 默认翻译方向：`en -> zh`
 - 支持方向：`en -> zh`、`zh -> en`
 - 运行方式：本地推理，不依赖在线翻译 API
-- 当前模型方案：两套单向 `OPUS-MT / Marian` 模型，运行时由 `CTranslate2` 驱动
+- 当前模型方案：两套不同大小的单向模型混合部署
 
-## 接手这个项目，先看什么
-
-如果你是第一次接手，建议按这个顺序看：
+## 接手这个项目，建议先看什么
 
 1. [Translate/ContentView.swift](/Users/bybon/ios/Translate/Translate/ContentView.swift)
 2. [Translate/TranslatorEngine.swift](/Users/bybon/ios/Translate/Translate/TranslatorEngine.swift)
@@ -21,9 +24,7 @@
 4. [Translate.xcodeproj/project.pbxproj](/Users/bybon/ios/Translate/Translate.xcodeproj/project.pbxproj)
 5. 两个模型目录：
    [opus-mt-en-zh-ct2-int8](/Users/bybon/ios/Translate/opus-mt-en-zh-ct2-int8)
-   [opus-mt-zh-en-ct2-int8](/Users/bybon/ios/Translate/opus-mt-zh-en-ct2-int8)
-
-理解这五处，基本就能把整个项目跑通、改通、定位问题。
+   [opus-mt-tiny-zh-en-ct2-int8](/Users/bybon/ios/Translate/opus-mt-tiny-zh-en-ct2-int8)
 
 ## 功能
 
@@ -34,19 +35,91 @@
 - 调试日志
 - 启动时自动 smoke test
 
+## 目录结构
+
+```text
+Translate/
+├── README.md
+├── Translate.xcodeproj
+│   ├── project.pbxproj
+│   └── project.xcworkspace
+│       ├── contents.xcworkspacedata
+│       └── xcshareddata/
+├── Translate
+│   ├── TranslateApp.swift
+│   ├── ContentView.swift
+│   ├── TranslatorEngine.swift
+│   ├── CTranslate2Bridge.h
+│   ├── CTranslate2Bridge.mm
+│   ├── Translate-Bridging-Header.h
+│   ├── Assets.xcassets
+│   │   ├── AccentColor.colorset/
+│   │   ├── AppIcon.appiconset/
+│   │   └── Contents.json
+│   └── Preview Content/
+│       └── Preview Assets.xcassets/
+├── Vendor
+│   └── CTranslate2
+│       ├── include/
+│       │   └── ctranslate2/
+│       ├── iphoneos/
+│       │   └── libctranslate2.a
+│       └── iphonesimulator/
+│           └── libctranslate2.a
+├── opus-mt-en-zh-ct2-int8
+│   ├── model.bin
+│   ├── config.json
+│   ├── source.spm
+│   ├── target.spm
+│   └── shared_vocabulary.json
+└── opus-mt-tiny-zh-en-ct2-int8
+    ├── model.bin
+    ├── config.json
+    ├── source.spm
+    ├── target.spm
+    └── shared_vocabulary.json
+```
+
+## 每个目录/文件是干什么的
+
+- `README.md`
+  - 项目说明文档（就是你现在看的这个）
+- `Translate.xcodeproj/`
+  - Xcode 工程文件，包含构建配置和资源引用
+  - `project.pbxproj`：工程的核心配置文件，包含编译设置、链接参数、资源引用
+- `Translate/`
+  - 业务源码
+  - `TranslateApp.swift`：应用入口，挂载 `ContentView`
+  - `ContentView.swift`：SwiftUI 主界面，管理输入框、方向切换、语音输入/播报
+  - `TranslatorEngine.swift`：翻译核心逻辑，方向切换、模型选择、分词/反分词、清洗输出
+  - `CTranslate2Bridge.h`：暴露给 Swift 的桥接接口声明
+  - `CTranslate2Bridge.mm`：Objective-C++ 到 C++ 的桥接实现，调用 `CTranslate2`
+  - `Translate-Bridging-Header.h`：Swift / Objective-C 桥接头
+  - `Assets.xcassets/`：应用图标、主题色等资源
+  - `Preview Content/`：Xcode 预览用的资源
+- `Vendor/CTranslate2/`
+  - 本地 vendored 的 CTranslate2 静态库与头文件
+  - `include/ctranslate2/`：C++ 头文件
+  - `iphoneos/libctranslate2.a`：真机静态库（~6.6 MB）
+  - `iphonesimulator/libctranslate2.a`：模拟器静态库（~14 MB）
+- `opus-mt-en-zh-ct2-int8/`
+  - 英译中模型（标准 OPUS-MT，52M 参数，int8 量化后 ~78 MB）
+- `opus-mt-tiny-zh-en-ct2-int8/`
+  - 中译英模型（OpusDistillery 蒸馏 Tiny，25.4M 参数，int8 量化后 ~19 MB）
+
 ## 模块关系图
 
 ```text
 ┌───────────────────────────────┐
 │          SwiftUI UI           │
 │       ContentView.swift       │
-│  文本输入 / 按钮 / STT / TTS   │
+│  文本输入 / 方向切换 / STT / TTS │
 └───────────────┬───────────────┘
                 │
                 ▼
 ┌───────────────────────────────┐
 │      TranslatorEngine.swift   │
-│  方向切换 / 模型选择 / 清洗输出 │
+│  方向切换 / 模型选择 / 清洗输出  │
 └───────────────┬───────────────┘
                 │
      ┌──────────┴──────────┐
@@ -62,49 +135,47 @@
 │  .spm / vocab    │   │  CTranslate2   │
 │ source/target    │   │ CPU 推理运行时  │
 └──────────────────┘   └────────┬───────┘
-                                 │
-                                 ▼
-                 ┌────────────────────────────────┐
-                 │ OPUS-MT / Marian int8 模型目录 │
-                 │ en->zh / zh->en                │
-                 └────────────────────────────────┘
+                                │
+              ┌─────────────────┴─────────────────┐
+              │                                   │
+              ▼                                   ▼
+┌────────────────────────────┐      ┌────────────────────────────┐
+│ opus-mt-en-zh-ct2-int8     │      │ opus-mt-tiny-zh-en-ct2-int8│
+│ en -> zh (标准, ~78 MB)     │      │ zh -> en (Tiny, ~19 MB)     │
+│ Marian 52M 参数             │      │ Marian 25.4M 参数           │
+│ 6 enc + 6 dec, d_model=512 │      │ 6 enc + 2 dec, d_model=256  │
+└────────────────────────────┘      └────────────────────────────┘
 ```
 
-## 目录结构
+## 模型资源
 
-```text
-Translate/
-├── README.md
-├── Translate.xcodeproj
-├── Translate
-│   ├── TranslateApp.swift
-│   ├── ContentView.swift
-│   ├── TranslatorEngine.swift
-│   ├── CTranslate2Bridge.h
-│   ├── CTranslate2Bridge.mm
-│   ├── Translate-Bridging-Header.h
-│   └── Assets.xcassets
-├── Vendor
-│   └── CTranslate2
-│       ├── include
-│       ├── iphoneos
-│       └── iphonesimulator
-├── opus-mt-en-zh-ct2-int8
-└── opus-mt-zh-en-ct2-int8
-```
+| 方向 | 模型 | 参数量 | int8 体积 |
+|------|------|--------|-----------|
+| `en -> zh` | `Helsinki-NLP/opus-mt-en-zh` | ~52M | **~78 MB** |
+| `zh -> en` | `Helsinki-NLP/opus-mt_tiny_zho-eng` | 25.4M | **~19 MB** |
+| **合计** | — | — | **~97 MB** |
 
-## 每个目录是干什么的
+相比原来两套标准模型（158 MB），节省了约 **38%** 的模型体积。
 
-- `Translate/`
-  - 业务源码
-- `Translate.xcodeproj/`
-  - Xcode 工程与构建配置
-- `Vendor/CTranslate2/`
-  - 本地 vendored 的 CTranslate2 静态库与头文件
-- `opus-mt-en-zh-ct2-int8/`
-  - 英译中模型
-- `opus-mt-zh-en-ct2-int8/`
-  - 中译英模型
+### 模型目录内容
+
+每个模型目录包含 5 个文件：
+
+| 文件 | 作用 |
+|------|------|
+| `model.bin` | CTranslate2 格式的推理权重（二进制） |
+| `config.json` | 模型配置（特殊 token、层归一化 epsilon 等） |
+| `source.spm` | 源语言 SentencePiece 分词器模型 |
+| `target.spm` | 目标语言 SentencePiece 分词器模型 |
+| `shared_vocabulary.json` | 词表（JSON 数组格式，按 token ID 排序） |
+
+### 为什么 zh->en 可以用 Tiny，en->zh 不行
+
+Helsinki-NLP 的 `OpusDistillery` 蒸馏项目中：
+- ✅ `opus-mt_tiny_zho-eng`（中→英）存在
+- ❌ `opus-mt_tiny_eng-zho`（英→中）**不存在**
+
+因此 `en->zh` 方向暂时只能使用标准大小的模型。如需进一步压缩，需要自己蒸馏训练（见下文"后续可优化方向"）。
 
 ## 技术栈
 
@@ -117,27 +188,31 @@ Translate/
 ### 系统能力
 
 - `Speech`
-  - 用于语音识别（STT）
+  - `SFSpeechRecognizer`：语音识别（STT）
+  - `SFSpeechAudioBufferRecognitionRequest`：实时音频流识别
+  - `AVAudioEngine`：录音会话管理
 - `AVFoundation`
-  - 用于录音会话管理
-  - 用于语音播报（TTS）
+  - `AVAudioSession`：录音/播放会话管理
+  - `AVSpeechSynthesizer`：语音播报（TTS）
 
 ### 模型与推理
 
 - `OPUS-MT / Marian`
-  - 当前使用两套单向模型
+  - `en->zh`：标准 Marian NMT（6 enc + 6 dec，d_model=512）
+  - `zh->en`：Tiny 蒸馏模型（6 enc + 2 dec，d_model=256）
 - `CTranslate2`
   - 本地 CPU 推理引擎
-  - 通过静态库方式接入
+  - 通过静态库方式接入（`libctranslate2.a`）
 - `SentencePiece`
   - 模型分词 / 反分词
+  - Swift 侧通过 `swift-sentencepiece` 调用
 - `int8` 量化
-  - 用于降低模型体积
+  - 降低模型体积和内存占用
 
 ### 语言桥接
 
 - `Objective-C++ (.mm)`
-  - 把 Swift 层调用桥接到 C++ 的 `CTranslate2`
+  - `CTranslate2Bridge.mm`：把 Swift 层调用桥接到 C++ 的 `CTranslate2`
 
 ## 第三方库
 
@@ -153,41 +228,15 @@ Translate/
 ### 本地 Vendor 库
 
 - `Vendor/CTranslate2`
-  - `iphoneos/libctranslate2.a`
-  - `iphonesimulator/libctranslate2.a`
-  - 头文件位于 `Vendor/CTranslate2/include`
+  - `iphoneos/libctranslate2.a`：真机静态库（~6.6 MB）
+  - `iphonesimulator/libctranslate2.a`：模拟器静态库（~14 MB）
+  - 头文件位于 `Vendor/CTranslate2/include/ctranslate2/`
 
 说明：
 
 - `CTranslate2` 是当前项目的推理运行时。
 - 当前工程通过 `SYSTEM_HEADER_SEARCH_PATHS`、`LIBRARY_SEARCH_PATHS` 和 `-lctranslate2` 显式链接它。
 - 如果删掉 `Vendor/CTranslate2`，工程会直接编译失败。
-
-## 模型资源
-
-项目当前打包了两套 CTranslate2 模型目录：
-
-- `opus-mt-en-zh-ct2-int8`
-- `opus-mt-zh-en-ct2-int8`
-
-每个目录包含：
-
-- `model.bin`
-- `config.json`
-- `shared_vocabulary.json`
-- `source.spm`
-- `target.spm`
-
-当前体积大致为：
-
-- 每个方向模型约 `79 MB`
-- `Vendor/CTranslate2` 约 `22 MB`
-
-模型之所以比以前更小，主要因为：
-
-- 换成了更小的 `Marian / OPUS-MT`
-- 使用了 `int8` 量化
-- `CTranslate2` 将推理权重收敛为单个 `model.bin`
 
 ## 核心源码说明
 
@@ -199,7 +248,7 @@ Translate/
 ### `Translate/ContentView.swift`
 
 - SwiftUI 主界面
-- 管理输入框、按钮、翻译方向切换
+- 管理输入框、翻译按钮、翻译方向切换 Segmented Picker
 - 集成语音输入 `SpeechManager`
 - 集成语音播报 `TTSManager`
 - 包含调试用 smoke test 入口
@@ -211,17 +260,22 @@ Translate/
 - 校验打包模型是否完整
 - 使用 `SentencepieceTokenizer` 做编码 / 解码
 - 调用 `CTranslate2Bridge`
+- `en -> zh` 方向会在源 token 前附加 `>>cmn_Hans<<`
 - 清洗输出文本
 
 ### `Translate/CTranslate2Bridge.h`
 
-- 暴露给 Swift 的桥接接口
+- 暴露给 Swift 的桥接接口声明
 
 ### `Translate/CTranslate2Bridge.mm`
 
 - Objective-C++ 到 C++ 的桥接实现
 - 实例化 `ctranslate2::Translator`
 - 把 token 数组送入推理引擎
+- 当前推理参数：
+  - `interThreads = 1`
+  - `intraThreads = 1`
+  - `compute_type = DEFAULT`（int8 模型回退到 float32）
 
 ### `Translate/Translate-Bridging-Header.h`
 
@@ -230,7 +284,9 @@ Translate/
 ## 翻译流程
 
 1. 用户在 `ContentView` 输入文本，或通过 `Speech` 进行语音识别。
-2. `TranslatorEngine` 根据当前方向选择对应模型目录。
+2. `TranslatorEngine` 根据当前方向选择对应模型目录：
+   - `en -> zh`：`opus-mt-en-zh-ct2-int8`
+   - `zh -> en`：`opus-mt-tiny-zh-en-ct2-int8`
 3. `SentencepieceTokenizer` 把文本编码成 token。
 4. `en -> zh` 方向会在源 token 前附加 `>>cmn_Hans<<`。
 5. `CTranslate2Bridge.mm` 调用 `ctranslate2::Translator` 进行推理。
@@ -247,7 +303,7 @@ Translate/
   - `intraThreads = 1`
 - 当前 beam：`1`
 - 资源打包方式：
-  - 两个模型目录作为 `Resources` 打进 App
+  - 两个模型目录作为 `Resources` 打进 App Bundle
 
 ## 构建与运行
 
@@ -265,9 +321,7 @@ Translate/
 
 - Swift Package 依赖会由 Xcode 自动解析
 - `Vendor/CTranslate2` 必须保留，否则静态库无法链接
-- 两个 `opus-mt-*-ct2-int8` 目录必须继续作为应用资源打包
-
-## 常用命令
+- 两个模型目录必须继续作为应用资源打包
 
 ### 命令行构建
 
@@ -286,7 +340,9 @@ xcodebuild \
 xcrun simctl launch --console-pty <SIMULATOR_UDID> com.bajie.Translate
 ```
 
-### 启动时自动做 en -> zh smoke test
+## Smoke Test
+
+### en -> zh
 
 ```bash
 SIMCTL_CHILD_TRANSLATE_DEBUG_LOGS=1 \
@@ -295,7 +351,7 @@ SIMCTL_CHILD_TRANSLATE_SMOKETEST_MODE='en-zh' \
 xcrun simctl launch --console-pty <SIMULATOR_UDID> com.bajie.Translate
 ```
 
-### 启动时自动做 zh -> en smoke test
+### zh -> en
 
 ```bash
 SIMCTL_CHILD_TRANSLATE_DEBUG_LOGS=1 \
@@ -346,9 +402,36 @@ xcrun simctl launch --console-pty <SIMULATOR_UDID> com.bajie.Translate
 
 因为当前 `opus-mt-en-zh` 模型在输入侧需要这个源端语言控制 token。
 
-### 4. 为什么仓库里有两套模型目录
+### 4. 为什么两套模型大小不一样
 
-因为当前采用的是两套单向模型，而不是一个真正双向共享权重模型。
+- `en->zh`：标准 OPUS-MT（52M 参数，6 enc + 6 dec，d_model=512）
+- `zh->en`：OpusDistillery 蒸馏的 Tiny 模型（25.4M 参数，6 enc + 2 dec，d_model=256）
+
+Helsinki-NLP 没有发布 `eng-zho` 的 Tiny 变体，因此 `en->zh` 方向暂时只能使用更大的标准模型。
+
+## 后续可优化方向
+
+### 短期（不训练）
+
+- 把 `Vendor/CTranslate2` 打成 `XCFramework`
+- 使用 On-Demand Resources (ODR) 按需加载模型
+- 升级 CTranslate2 静态库，消除 `int8_float32 -> float32 fallback` 警告
+- 评估模型按需下载（只打包默认方向，另一方向首次使用时下载）
+
+### 中期（需训练资源）
+
+- **蒸馏自己的 `en->zh` Tiny 模型**
+  - 使用 `OpusDistillery` 框架
+  - 教师模型：`Helsinki-NLP/opus-mt-en-zh`
+  - 学生架构：d_model=256，6 enc + 2 dec layers，vocab=32000
+  - 预计训练时间：A100 上 2-4 小时
+  - 预期体积：从 78 MB 降到 ~18 MB
+  - 总模型体积可从 97 MB 降到 **~36 MB**
+
+### 长期
+
+- 评估多语言模型（M2M-100、NLLB）的单语对质量
+- 探索 `int4` 量化（需更换推理框架，CTranslate2 CPU 不支持 INT4）
 
 ## 如果你要继续改这个项目
 
@@ -359,12 +442,3 @@ xcrun simctl launch --console-pty <SIMULATOR_UDID> com.bajie.Translate
 - 改推理参数：看 `CTranslate2Bridge.mm`
 - 换模型：替换 `opus-mt-*-ct2-int8` 目录，并同步校验资源格式
 - 改构建方式：看 `Translate.xcodeproj/project.pbxproj`
-
-## 后续可优化方向
-
-- 把 `Vendor/CTranslate2` 打成 `XCFramework`
-- 继续缩小模型体积
-- 提升 beam/search 策略
-- 加更多语言方向
-- 增加自动化测试
-- 增加模型替换文档

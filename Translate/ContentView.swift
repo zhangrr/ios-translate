@@ -17,12 +17,12 @@ private func appDebugLog(_ message: String) {
 class SpeechManager: ObservableObject {
     @Published var isRecording = false
     @Published var recognizedText = ""
-    
+
     private let audioEngine = AVAudioEngine()
-    private var speechRecognizer: SFSpeechRecognizer? // 改为动态初始化，为了随时切换听懂的语言
+    private var speechRecognizer: SFSpeechRecognizer?
     private var request: SFSpeechAudioBufferRecognitionRequest?
     private var task: SFSpeechRecognitionTask?
-    
+
     func checkPermission() {
         SFSpeechRecognizer.requestAuthorization { _ in }
         if #available(iOS 17.0, *) {
@@ -31,7 +31,7 @@ class SpeechManager: ObservableObject {
             AVAudioSession.sharedInstance().requestRecordPermission { _ in }
         }
     }
-    
+
     // 🌟 传入不同的语言代码，让麦克风变得聪明
     func toggleRecording(languageCode: String) {
         if isRecording {
@@ -40,25 +40,25 @@ class SpeechManager: ObservableObject {
             startRecording(languageCode: languageCode)
         }
     }
-    
+
     private func startRecording(languageCode: String) {
         // 动态根据方向设置听力语言 (zh-CN 或 en-US)
         speechRecognizer = SFSpeechRecognizer(locale: Locale(identifier: languageCode))
-        
+
         if task != nil {
             task?.cancel()
             task = nil
         }
-        
+
         let audioSession = AVAudioSession.sharedInstance()
         try? audioSession.setCategory(.record, mode: .measurement, options: .duckOthers)
         try? audioSession.setActive(true, options: .notifyOthersOnDeactivation)
-        
+
         request = SFSpeechAudioBufferRecognitionRequest()
         let inputNode = audioEngine.inputNode
         guard let request = request else { return }
         request.shouldReportPartialResults = true // 实时吐字
-        
+
         task = speechRecognizer?.recognitionTask(with: request, resultHandler: { result, error in
             if let result = result {
                 DispatchQueue.main.async {
@@ -69,21 +69,21 @@ class SpeechManager: ObservableObject {
                 self.stopRecording()
             }
         })
-        
+
         let recordingFormat = inputNode.outputFormat(forBus: 0)
         inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { buffer, _ in
             self.request?.append(buffer)
         }
-        
+
         audioEngine.prepare()
         try? audioEngine.start()
-        
+
         DispatchQueue.main.async {
             self.recognizedText = ""
             self.isRecording = true
         }
     }
-    
+
     func stopRecording() {
         audioEngine.stop()
         audioEngine.inputNode.removeTap(onBus: 0)
@@ -109,7 +109,7 @@ class TTSManager {
     }
 
     private let synthesizer = AVSpeechSynthesizer()
-    
+
     // 🌟 传入语言代码，决定念中文还是英文
     func speak(text: String, language: String) {
         let normalizedText = text.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -142,10 +142,10 @@ struct ContentView: View {
     @State private var inputText: String = ""
     @State private var translatedText: String = "翻译结果将在这里显示..."
     @State private var isTranslating: Bool = false
-    
+
     // 🌟 UI 层维护当前的翻译模式状态 (默认英翻中)
     @State private var currentMode: TranslationMode = TranslatorEngine.defaultMode
-    
+
     @StateObject private var speechManager = SpeechManager()
 
     private var canSpeakTranslatedText: Bool {
@@ -163,14 +163,14 @@ struct ContentView: View {
     private var isCurrentModeSupported: Bool {
         TranslatorEngine.isModeSupported(currentMode)
     }
-    
+
     var body: some View {
         VStack(spacing: 20) {
             Text("AI 同传翻译官")
                 .font(.title)
                 .fontWeight(.bold)
                 .padding(.top, 40)
-            
+
             // 🌟 1. 双向切换器 (Segmented Picker)
             Picker("翻译方向", selection: $currentMode) {
                 Text(TranslatorEngine.pickerTitle(for: .en2zh))
@@ -212,7 +212,7 @@ struct ContentView: View {
                             .padding(.leading, 12),
                         alignment: .topLeading
                     )
-                
+
                 // 🎙️ 录音按钮
                 Button(action: {
                     speechManager.toggleRecording(languageCode: currentMode.listenLanguageCode)
@@ -230,7 +230,7 @@ struct ContentView: View {
                     inputText = newValue
                 }
             }
-            
+
             // 翻译按钮
             Button(action: {
                 startTranslation()
@@ -252,7 +252,7 @@ struct ContentView: View {
                 speechManager.isRecording ||
                 !isCurrentModeSupported
             )
-            
+
             // 输出结果框 (带小喇叭)
             ZStack(alignment: .bottomTrailing) {
                 ScrollView {
@@ -263,7 +263,7 @@ struct ContentView: View {
                 .frame(height: 200)
                 .background(Color.gray.opacity(0.1))
                 .cornerRadius(12)
-                
+
                 // 🔊 播报按钮
                 Button(action: {
                     TTSManager.shared.speak(text: translatedText, language: currentMode.speakLanguageCode)
@@ -278,7 +278,7 @@ struct ContentView: View {
                 .opacity(TTSManager.isSupported ? 1 : 0.35)
             }
             .padding(.horizontal)
-            
+
             Spacer()
         }
         .onAppear {
@@ -292,7 +292,7 @@ struct ContentView: View {
             }
         }
     }
-    
+
     // 点击翻译按钮后执行的动作
     func startTranslation() {
         let sourceText = inputText
@@ -307,15 +307,15 @@ struct ContentView: View {
         isTranslating = true
         translatedText = "AI 正在思考中，请稍候..."
         appDebugLog("▶️ 开始翻译 mode=\(mode.rawValue) text=\(sourceText)")
-        
+
         DispatchQueue.global(qos: .userInitiated).async {
             let result = engine.translate(text: sourceText, mode: mode)
-            
+
             DispatchQueue.main.async {
                 self.translatedText = result
                 self.isTranslating = false
                 appDebugLog("✅ 翻译返回: \(result)")
-                
+
                 // 翻译完成后，自动根据方向发音！
                 if TTSManager.isSupported &&
                     !result.contains("失败") &&

@@ -76,7 +76,7 @@ final class TranslatorEngine {
             sourcePrefixTokens: [">>cmn_Hans<<"]
         ),
         .zh2en: BundledModel(
-            directory: "opus-mt-zh-en-ct2-int8",
+            directory: "opus-mt-tiny-zh-en-ct2-int8",
             mode: .zh2en,
             sourcePrefixTokens: []
         ),
@@ -228,7 +228,7 @@ final class TranslatorEngine {
         let unkToken = try tokenizer.idToToken(tokenizer.unkTokenId)
 
         for token in outputTokens where !ignoredTokens.contains(token) {
-            if token.hasPrefix(">>"), token.hasSuffix("<<") {
+            if token.hasPrefix(">>") && token.hasSuffix("<<") {
                 continue
             }
 
