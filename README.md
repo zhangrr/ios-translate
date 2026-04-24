@@ -23,7 +23,7 @@
 3. [Translate/CTranslate2Bridge.mm](/Users/bybon/ios/Translate/Translate/CTranslate2Bridge.mm)
 4. [Translate.xcodeproj/project.pbxproj](/Users/bybon/ios/Translate/Translate.xcodeproj/project.pbxproj)
 5. 两个模型目录：
-   [opus-mt-small512d-opus100-ft-mix-coffee-ct2-int8](/Users/bybon/ios/Translate/opus-mt-small512d-opus100-ft-mix-coffee-ct2-int8)
+   [opus-mt-small320d-opus100-joint32k-ft-money-coffee-ct2-int8](/Users/bybon/ios/Translate/opus-mt-small320d-opus100-joint32k-ft-money-coffee-ct2-int8)
    [opus-mt-tiny-zh-en-ct2-int8](/Users/bybon/ios/Translate/opus-mt-tiny-zh-en-ct2-int8)
 
 ## 功能
@@ -66,7 +66,7 @@ Translate/
 │       │   └── libctranslate2.a
 │       └── iphonesimulator/
 │           └── libctranslate2.a
-├── opus-mt-small512d-opus100-ft-mix-coffee-ct2-int8
+├── opus-mt-small320d-opus100-joint32k-ft-money-coffee-ct2-int8
 │   ├── model.bin
 │   ├── config.json
 │   ├── source.spm
@@ -102,7 +102,7 @@ Translate/
   - `include/ctranslate2/`：C++ 头文件
   - `iphoneos/libctranslate2.a`：真机静态库（~6.6 MB）
   - `iphonesimulator/libctranslate2.a`：模拟器静态库（~14 MB）
-- `opus-mt-small512d-opus100-ft-mix-coffee-ct2-int8/`
+- `opus-mt-small320d-opus100-joint32k-ft-money-coffee-ct2-int8/`
   - 英译中模型（`opus-mt-small512d-opus100-ft-mix-coffee`，int8 量化后 ~64 MB）
 - `opus-mt-tiny-zh-en-ct2-int8/`
   - 中译英模型（OpusDistillery 蒸馏 Tiny，25.4M 参数，int8 量化后 ~19 MB）
@@ -281,7 +281,7 @@ Translate/
 
 1. 用户在 `ContentView` 输入文本，或通过 `Speech` 进行语音识别。
 2. `TranslatorEngine` 根据当前方向选择对应模型目录：
-   - `en -> zh`：`opus-mt-small512d-opus100-ft-mix-coffee-ct2-int8`
+   - `en -> zh`：`opus-mt-small320d-opus100-joint32k-ft-money-coffee-ct2-int8`
    - `zh -> en`：`opus-mt-tiny-zh-en-ct2-int8`
 3. `SentencepieceTokenizer` 把文本编码成 token。
 4. `en -> zh` 方向会在源 token 前附加 `>>cmn_Hans<<`。

@@ -71,7 +71,7 @@ final class TranslatorEngine {
 
     private static let bundledModels: [TranslationMode: BundledModel] = [
         .en2zh: BundledModel(
-            directory: "opus-mt-small512d-opus100-ft-mix-coffee-ct2-int8",
+            directory: "opus-mt-small320d-opus100-joint32k-ft-money-coffee-ct2-int8",
             mode: .en2zh,
             sourcePrefixTokens: [">>cmn_Hans<<"]
         ),
