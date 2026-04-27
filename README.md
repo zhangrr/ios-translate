@@ -2,8 +2,8 @@
 
 一个本地离线的 iOS 双向翻译应用，使用 `OPUS-MT` 做中英互译，并集成了系统语音输入与语音播报。
 
-- `en -> zh`：`opus-mt-small512d-opus100-ft-mix-coffee` 模型（d_model=512）
-- `zh -> en`：`OPUS-MT Tiny` 模型（25.4M 参数）
+- `en -> zh`：`opus-mt-small320d-opus100-joint32k-ft-money-coffee-ct2-int8`（当前 `model.bin` 约 `20M`，完整目录约 `22M`）
+- `zh -> en`：`OPUS-MT Tiny` 模型（25.4M 参数，完整目录约 `19M`）
 
 两套模型均使用 `CTranslate2 int8` 量化，运行时本地 CPU 推理。
 
@@ -14,7 +14,7 @@
 - 默认翻译方向：`en -> zh`
 - 支持方向：`en -> zh`、`zh -> en`
 - 运行方式：本地推理，不依赖在线翻译 API
-- 当前模型方案：两套不同大小的单向模型混合部署
+- 当前模型方案：两套单向模型混合部署，其中 `en -> zh` 已完成 20M 级别轻量化
 
 ## 接手这个项目，建议先看什么
 
@@ -103,7 +103,7 @@ Translate/
   - `iphoneos/libctranslate2.a`：真机静态库（~6.6 MB）
   - `iphonesimulator/libctranslate2.a`：模拟器静态库（~14 MB）
 - `opus-mt-small320d-opus100-joint32k-ft-money-coffee-ct2-int8/`
-  - 英译中模型（`opus-mt-small512d-opus100-ft-mix-coffee`，int8 量化后 ~64 MB）
+  - 当前英译中模型目录，`model.bin` 已提炼到约 `20M`，完整目录约 `22M`
 - `opus-mt-tiny-zh-en-ct2-int8/`
   - 中译英模型（OpusDistillery 蒸馏 Tiny，25.4M 参数，int8 量化后 ~19 MB）
 
@@ -139,20 +139,20 @@ Translate/
               ┌─────────────────┴─────────────────┐
               │                                   │
               ▼                                   ▼
-┌─────────────────────────────────────────┐      ┌────────────────────────────┐
-│ opus-mt-small512d-opus100-ft-mix-coffee │      │ opus-mt-tiny-zh-en-ct2-int8│
-│ en -> zh (~64 MB)                       │      │ zh -> en (Tiny, ~19 MB)     │
-│ Marian NMT, d_model=512                 │      │ Marian 25.4M 参数           │
-└─────────────────────────────────────────┘      └────────────────────────────┘
+┌──────────────────────────────────────────────────────┐   ┌────────────────────────────┐
+│ opus-mt-small320d-opus100-joint32k-ft-money-coffee │   │ opus-mt-tiny-zh-en-ct2-int8│
+│ en -> zh (~20 MB model.bin / ~22 MB dir)           │   │ zh -> en (Tiny, ~19 MB)     │
+│ 当前包内轻量化后的英译中模型                         │   │ Marian 25.4M 参数           │
+└──────────────────────────────────────────────────────┘   └────────────────────────────┘
 ```
 
 ## 模型资源
 
-| 方向 | 模型 | 参数量 | int8 体积 |
+| 方向 | 模型 | 参数量 | 当前体积 |
 |------|------|--------|-----------|
-| `en -> zh` | `opus-mt-small512d-opus100-ft-mix-coffee` | — | **~64 MB** |
-| `zh -> en` | `Helsinki-NLP/opus-mt_tiny_zho-eng` | 25.4M | **~19 MB** |
-| **合计** | — | — | **~83 MB** |
+| `en -> zh` | `opus-mt-small320d-opus100-joint32k-ft-money-coffee` | — | **~20 MB（model.bin） / ~22 MB（目录）** |
+| `zh -> en` | `Helsinki-NLP/opus-mt_tiny_zho-eng` | 25.4M | **~17 MB（model.bin） / ~19 MB（目录）** |
+| **合计** | — | — | **~39 MB（权重） / ~41 MB（目录）** |
 
 ### 模型目录内容
 
@@ -168,10 +168,10 @@ Translate/
 
 ### 模型来源与选择
 
-- `en->zh`：基于 `opus-mt-small512d-opus100` 在混合语料上微调的模型，d_model=512，int8 量化后约 **64 MB**。
-- `zh->en`：Helsinki-NLP `OpusDistillery` 蒸馏的 Tiny 模型（25.4M 参数），int8 量化后约 **19 MB**。
+- `en->zh`：当前包内实际使用 `opus-mt-small320d-opus100-joint32k-ft-money-coffee-ct2-int8`，其中 `model.bin` 约 **20 MB**，完整目录约 **22 MB**。这部分对应 README 之前写的中期轻量化目标，现已完成。
+- `zh->en`：Helsinki-NLP `OpusDistillery` 蒸馏的 Tiny 模型（25.4M 参数），`model.bin` 约 **17 MB**，完整目录约 **19 MB**。
 
-两套模型均为单向模型，混合部署以平衡质量与体积。
+两套模型均为单向模型，当前都已经压到 20 MB 级别，继续采用混合部署以平衡质量与体积。
 
 ## 技术栈
 
@@ -194,7 +194,7 @@ Translate/
 ### 模型与推理
 
 - `OPUS-MT / Marian`
-  - `en->zh`：`opus-mt-small512d-opus100-ft-mix-coffee`（d_model=512）
+  - `en->zh`：`opus-mt-small320d-opus100-joint32k-ft-money-coffee`（当前 `model.bin` ~20 MB，完整目录 ~22 MB）
   - `zh->en`：Tiny 蒸馏模型（6 enc + 2 dec，d_model=256）
 - `CTranslate2`
   - 本地 CPU 推理引擎
@@ -400,10 +400,10 @@ xcrun simctl launch --console-pty <SIMULATOR_UDID> com.bajie.Translate
 
 ### 4. 为什么两套模型大小不一样
 
-- `en->zh`：`opus-mt-small512d-opus100-ft-mix-coffee`（d_model=512，int8 量化后 ~64 MB）
-- `zh->en`：OpusDistillery 蒸馏的 Tiny 模型（25.4M 参数，6 enc + 2 dec，d_model=256，int8 量化后 ~19 MB）
+- `en->zh`：当前 `model.bin` 约 `20M`，加上 `source.spm`、`target.spm` 和 `shared_vocabulary.json` 后，整个目录约 `22M`
+- `zh->en`：当前 `model.bin` 约 `17M`，完整目录约 `19M`
 
-`zh->en` 方向使用了层数更少的蒸馏模型，因此体积更小。
+`en->zh` 方向的轻量化已经完成，所以两边现在都在 20M 级别；剩余差异主要来自权重本体和分词器/词表文件大小。
 
 ## 后续可优化方向
 
@@ -414,15 +414,14 @@ xcrun simctl launch --console-pty <SIMULATOR_UDID> com.bajie.Translate
 - 升级 CTranslate2 静态库，消除 `int8_float32 -> float32 fallback` 警告
 - 评估模型按需下载（只打包默认方向，另一方向首次使用时下载）
 
-### 中期（需训练资源）
+### 中期（已完成）
 
-- **蒸馏自己的 `en->zh` Tiny 模型**
-  - 使用 `OpusDistillery` 框架
-  - 教师模型：当前 `en->zh` 模型
-  - 学生架构：d_model=256，6 enc + 2 dec layers，vocab=32000
-  - 预计训练时间：A100 上 2-4 小时
-  - 预期体积：从 ~64 MB 降到 ~18 MB
-  - 总模型体积可从 ~83 MB 降到 **~36 MB**
+- **`en->zh` 轻量化模型已经落地**
+  - 当前包内模型目录：`opus-mt-small320d-opus100-joint32k-ft-money-coffee-ct2-int8`
+  - `model.bin`：约 `20M`
+  - 完整模型目录：约 `22M`
+  - 当前双向模型目录合计：约 `41M`
+  - 这一项就是 README 之前写的中期目标，对当前仓库来说已经不是待办，而是现状
 
 ### 长期
 
